@@ -52,6 +52,26 @@ Also notice that the scripts will prompt for confirmation if a file at the given
 
 There is an example schema `example.toml` and an example assertion `example.json` in the root directory.
 
+```bash
+% cat example.toml 
+namespace = "http://example.com/"
+
+[shapes.Person]
+[shapes.Person.orchidId]
+kind = "uri"
+cardinality = "optional"
+
+[shapes.Person.name]
+kind = "literal"
+datatype = "string"
+cardinality = "any"
+
+[shapes.Person.knows]
+kind = "reference"
+label = "Person"
+cardinality = "any"
+```
+
 The first thing you'd want to do is compile the schema:
 
 ```bash
