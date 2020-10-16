@@ -71,7 +71,7 @@ There is an example schema `example.toml` and an example assertion `example.json
 namespace = "http://example.com/"
 
 [shapes.Person]
-[shapes.Person.orchidId]
+[shapes.Person.orcidId]
 kind = "uri"
 cardinality = "optional"
 
@@ -91,14 +91,14 @@ cardinality = "any"
 		{
 			"@id": "_:john",
 			"@type": "http://example.com/Person",
-			"http://example.com/Person/orchidId": {
-				"http://underlay.org/ns/some": { "@id": "http://orchid.id/john" }
+			"http://example.com/Person/orcidId": {
+				"http://underlay.org/ns/some": { "@id": "http://orcid.id/john" }
 			}
 		},
 		{
 			"@id": "_:jane",
 			"@type": "http://example.com/Person",
-			"http://example.com/Person/orchidId": {
+			"http://example.com/Person/orcidId": {
 				"http://underlay.org/ns/none": {}
 			}
 		},
@@ -152,7 +152,7 @@ If we wanted to initialize an empty database based on this schema, we'd run this
 If you open this in your favorite database IDE you should see three tables with this schema:
 
 - `"http://example.com/Person"`
-  - `"http://example.com/orchidId" text`
+  - `"http://example.com/orcidId" text`
 - `"http://example.com/Person/knows"`
   - `"http://underlay.org/ns/source" integer references "http://example.com/Person"`
   - `"http://underlay.org/ns/target" integer references "http://example.com/Person"`
