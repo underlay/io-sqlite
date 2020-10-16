@@ -7,7 +7,7 @@ This repo has scripts that you can use to import and export Underlay assertions 
 Both the import and export scripts take as their first argument a path to a compiled schema in canonicalized n-quads format. You can generate one of these from a TOML schema with the `lib/compile.js` script.
 
 ```bash
-% node lib/compiled.js -i path-to-schema.toml -o output-path.nq
+% node lib/compile.js -i path-to-schema.toml -o output-path.nq
 ```
 
 ## Import
