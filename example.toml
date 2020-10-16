@@ -1,0 +1,16 @@
+namespace = "http://example.com/"
+
+[shapes.Person]
+[shapes.Person.orchidId]
+kind = "uri"
+cardinality = "optional"
+
+[shapes.Person.name]
+kind = "literal"
+datatype = "string"
+cardinality = "any"
+
+[shapes.Person.knows]
+kind = "reference"
+label = "Person"
+cardinality = "any"

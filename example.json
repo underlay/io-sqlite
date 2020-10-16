@@ -1,0 +1,33 @@
+{
+	"@graph": [
+		{
+			"@id": "_:john",
+			"@type": "http://example.com/Person",
+			"http://example.com/Person/orchidId": {
+				"http://underlay.org/ns/some": { "@id": "http://orchid.id/john" }
+			}
+		},
+		{
+			"@id": "_:jane",
+			"@type": "http://example.com/Person",
+			"http://example.com/Person/orchidId": {
+				"http://underlay.org/ns/none": {}
+			}
+		},
+		{
+			"@type": "http://example.com/Person/name",
+			"http://underlay.org/ns/source": { "@id": "_:john" },
+			"http://underlay.org/ns/target": "John Doe"
+		},
+		{
+			"@type": "http://example.com/Person/name",
+			"http://underlay.org/ns/source": { "@id": "_:jane" },
+			"http://underlay.org/ns/target": "Jane Doe"
+		},
+		{
+			"@type": "http://example.com/Person/knows",
+			"http://underlay.org/ns/source": { "@id": "_:john" },
+			"http://underlay.org/ns/target": { "@id": "_:jane" }
+		}
+	]
+}
