@@ -3,14 +3,14 @@
 		{
 			"@id": "_:john",
 			"@type": "http://example.com/Person",
-			"http://example.com/Person/orchidId": {
-				"http://underlay.org/ns/some": { "@id": "http://orchid.id/john" }
+			"http://example.com/Person/orcidId": {
+				"http://underlay.org/ns/some": { "@id": "http://orcid.id/john" }
 			}
 		},
 		{
 			"@id": "_:jane",
 			"@type": "http://example.com/Person",
-			"http://example.com/Person/orchidId": {
+			"http://example.com/Person/orcidId": {
 				"http://underlay.org/ns/none": {}
 			}
 		},
