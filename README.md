@@ -50,7 +50,7 @@ IF (and only if) the database was created using `lib/import.js` using the _exact
 
 ## Usage notes
 
-Foreign key constraint checks are turned **OFF** by default in SQLite; when inserting into a database after it has been initialize you need to explicitly turn them ON with
+Foreign key constraint checks are turned **OFF** by default in SQLite; when inserting into a database after it has been initialized you need to explicitly turn them ON with
 
 ```
 PRAGMA foreign_keys = ON;
@@ -84,6 +84,41 @@ cardinality = "any"
 kind = "reference"
 label = "Person"
 cardinality = "any"
+
+% cat example.json 
+{
+	"@graph": [
+		{
+			"@id": "_:john",
+			"@type": "http://example.com/Person",
+			"http://example.com/Person/orchidId": {
+				"http://underlay.org/ns/some": { "@id": "http://orchid.id/john" }
+			}
+		},
+		{
+			"@id": "_:jane",
+			"@type": "http://example.com/Person",
+			"http://example.com/Person/orchidId": {
+				"http://underlay.org/ns/none": {}
+			}
+		},
+		{
+			"@type": "http://example.com/Person/name",
+			"http://underlay.org/ns/source": { "@id": "_:john" },
+			"http://underlay.org/ns/target": "John Doe"
+		},
+		{
+			"@type": "http://example.com/Person/name",
+			"http://underlay.org/ns/source": { "@id": "_:jane" },
+			"http://underlay.org/ns/target": "Jane Doe"
+		},
+		{
+			"@type": "http://example.com/Person/knows",
+			"http://underlay.org/ns/source": { "@id": "_:john" },
+			"http://underlay.org/ns/target": { "@id": "_:jane" }
+		}
+	]
+}
 ```
 
 The first thing you'd want to do is compile the schema:
