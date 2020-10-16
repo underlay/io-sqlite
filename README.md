@@ -2,6 +2,20 @@
 
 This repo has scripts that you can use to import and export Underlay assertions to and from sqlite databases.
 
+## Install
+
+The first thing you need to do is fetch the submodules:
+
+```
+git submodule update --init --recursive
+```
+
+and _then_ install the dependencies:
+
+```
+npm install
+```
+
 ## Compile
 
 Both the import and export scripts take as their first argument a path to a compiled schema in canonicalized n-quads format. You can generate one of these from a TOML schema with the `lib/compile.js` script.
