@@ -46,7 +46,7 @@ Read more about foreign keys in SQLite [here](https://sqlite.org/foreignkeys.htm
 
 Also notice that the scripts will prompt for confirmation if a file at the given output path already exists - if you're trying to use these programmatically then you have to make sure the path is clear yourself, before calling the script.
 
-**You need node.js version 14.8 or higher** since the scripts use ES^ modules and top-level await. If you are on an earlier version you might be able to get things to work by throwing in a `--harmony-top-level-await` flag somewhere, but no promises.
+**You need node.js version 14.8 or higher** since the scripts use ES6 modules and top-level await. If you are on an earlier version you might be able to get things to work by throwing in a `--harmony-top-level-await` flag somewhere, but no promises.
 
 ## Example
 
