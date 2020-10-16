@@ -80,13 +80,18 @@ If we wanted to initialize an empty database based on this schema, we'd run this
 % node lib/import.js -s example.schema.nq -o database.sqlite
 ```
 
-If you open this in DataGrip or similar you should see that there are three tables created:
+If you open this in your favorite database IDE you should see three tables with this schema:
 
-- `http://example.com/Person`
-- `http://example.com/Person/knows`
+- `"http://example.com/Person"`
+  - `"http://example.com/orchidId" text`
+- `"http://example.com/Person/knows"`
+  - `"http://underlay.org/ns/source" integer references "http://example.com/Person"`
+  - `"http://underlay.org/ns/target" integer references "http://example.com/Person"`
 - `http://example.com/Person/name`
+  - `"http://underlay.org/ns/source" integer references "http://example.com/Person"`
+  - `"http://underlay.org/ns/target" text not null`
 
-All three should have an integer primary key called `id`.
+All three should also have an integer primary key called `id`.
 
 From here you could start inserting/updating/deleting data.
 
