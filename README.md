@@ -154,10 +154,10 @@ If you open this in your favorite database IDE you should see three tables with 
 - `"http://example.com/Person"`
   - `"http://example.com/orcidId" text`
 - `"http://example.com/Person/knows"`
-  - `"http://underlay.org/ns/source" integer references "http://example.com/Person"`
-  - `"http://underlay.org/ns/target" integer references "http://example.com/Person"`
+  - `"http://underlay.org/ns/source" integer not null references "http://example.com/Person"`
+  - `"http://underlay.org/ns/target" integer not null references "http://example.com/Person"`
 - `http://example.com/Person/name`
-  - `"http://underlay.org/ns/source" integer references "http://example.com/Person"`
+  - `"http://underlay.org/ns/source" integer not null references "http://example.com/Person"`
   - `"http://underlay.org/ns/target" text not null`
 
 All three should also have an integer primary key called `id`.
