@@ -1,6 +1,6 @@
 {
 	"name": "io-sqlite",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"type": "module",
 	"description": "This repo has scripts that you can use to import and export Underlay assertions to and from sqlite databases.",
 	"main": "index.js",
@@ -17,7 +17,7 @@
 		"fp-ts": "^2.8.4",
 		"io-ts": "^2.2.11",
 		"jsonld": "^3.2.0",
-		"n3.ts": "^0.1.3",
+		"n3.ts": "^0.1.4",
 		"rdf-canonize": "^1.2.0",
 		"sqlite": "^4.0.15",
 		"sqlite3": "^5.0.0",

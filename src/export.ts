@@ -100,7 +100,16 @@ Object.freeze(optionKeys)
 
 const datatypes: Map<string, NamedNode> = new Map()
 const componentKeys: Map<APG.Product, string[]> = new Map()
+const ids: Map<number, number>[] = []
 for (const label of schema) {
+	validateURI(label.key)
+	const map: Map<number, number> = new Map()
+	let i = 0
+	await db.each(
+		`SELECT id FROM "${label.key}"`,
+		(err: null | Error, { id }: { id: number }) => map.set(id, i++)
+	)
+	ids.push(map)
 	if (label.value.type === "product") {
 		const keys = label.value.components.map(({ key }) => key)
 		Object.freeze(keys)
@@ -125,10 +134,19 @@ for (const label of schema) {
 function parseValue(
 	value: string | number | boolean,
 	type: APG.Literal | APG.Iri | APG.Reference
+	// map: Map<number, number>
 ): APG.Value {
 	if (type.type === "reference") {
-		if (typeof value === "number") {
-			return new APG.Pointer(value)
+		const map = ids[type.value]
+		if (map === undefined) {
+			throw new Error("Invalid reference type")
+		} else if (typeof value === "number") {
+			const index = map.get(value)
+			if (index === undefined) {
+				throw new Error("Invalid foreign key")
+			} else {
+				return new APG.Pointer(index)
+			}
 		} else {
 			throw new Error(`Unexpected value for reference type`)
 		}
@@ -145,14 +163,14 @@ function parseValue(
 			throw new Error(`Unexpected datatype ${type.datatype}`)
 		} else if (type.datatype === xsd.boolean) {
 			if (typeof value === "boolean") {
-				return new Literal(value ? "true" : "false", datatype)
+				return new Literal(value ? "true" : "false", "", datatype)
 			} else {
 				throw new Error("Unexpected value for boolean datatype")
 			}
 		} else if (type.datatype === xsd.integer) {
 			// This also rules out NaN
 			if (typeof value === "number" && Math.round(value) === value) {
-				return new Literal(parseInt(value.toString()).toString(), datatype)
+				return new Literal(parseInt(value.toString()).toString(), "", datatype)
 			} else {
 				throw new Error("Unexpected value for integer datatype")
 			}
@@ -164,6 +182,7 @@ function parseValue(
 						: value === -Infinity
 						? "-INF"
 						: value.toString(),
+					"",
 					datatype
 				)
 			} else {
@@ -171,13 +190,13 @@ function parseValue(
 			}
 		} else if (type.datatype === xsd.string) {
 			if (typeof value === "string") {
-				return new Literal(value, datatype)
+				return new Literal(value, "", datatype)
 			} else {
 				throw new Error("Unexpected value for string datatype")
 			}
 		} else {
 			if (typeof value === "string") {
-				return new Literal(value, datatype)
+				return new Literal(value, "", datatype)
 			} else {
 				throw new Error("Unexpected value for literal type")
 			}
