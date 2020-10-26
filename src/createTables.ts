@@ -1,9 +1,11 @@
 import { xsd } from "n3.ts"
+
 import { APG } from "apg"
+import { isRelationalSchema } from "apg/lib/models/relational.js"
 
-import { isRelationalSchema, validateURI } from "./validate.js"
+import { validateURI } from "./validateURI.js"
 
-// This yields string CREATE TABLE statements for each label in the schema
+// This returns one big string of CREATE TABLE statements
 export function createTables(schema: APG.Schema): string {
 	if (isRelationalSchema(schema)) {
 	} else {
@@ -31,10 +33,14 @@ export function createTables(schema: APG.Schema): string {
 							columns.push(`"${name}" integer`)
 						} else if (value.datatype === xsd.double) {
 							columns.push(`"${name}" double`)
+						} else if (value.datatype === xsd.hexBinary) {
+							columns.push(`"${name}" blob`)
+						} else if (value.datatype === xsd.base64Binary) {
+							columns.push(`"${name}" blob`)
 						} else if (value.datatype === xsd.string) {
 							columns.push(`"${name}" text`)
 						} else {
-							columns.push(`"${name}" blob`)
+							columns.push(`"${name}" text`)
 						}
 					} else if (value.type === "reference") {
 						const { key } = schema[value.value]
@@ -49,10 +55,14 @@ export function createTables(schema: APG.Schema): string {
 						columns.push(`"${name}" integer not null`)
 					} else if (component.value.datatype === xsd.double) {
 						columns.push(`"${name}" double not null`)
+					} else if (component.value.datatype === xsd.hexBinary) {
+						columns.push(`"${name}" blob not null`)
+					} else if (component.value.datatype === xsd.base64Binary) {
+						columns.push(`"${name}" blob not null`)
 					} else if (component.value.datatype === xsd.string) {
 						columns.push(`"${name}" text not null`)
 					} else {
-						columns.push(`"${name}" blob not null`)
+						columns.push(`"${name}" text not null`)
 					}
 				} else if (component.value.type === "reference") {
 					const { key } = schema[component.value.value]

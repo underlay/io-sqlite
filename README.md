@@ -4,7 +4,7 @@ This repo has scripts that you can use to import and export Underlay assertions 
 
 ## Install
 
-The first thing you need to do is fetch the submodules:
+For weird reasons, we have [shexSpec/shex.js](https://github.com/shexSpec/shex.js) as a git submodule, so the first thing you need to do is fetch the submodules:
 
 ```
 git submodule update --init --recursive
@@ -18,35 +18,35 @@ npm install
 
 ## Compile
 
-Both the import and export scripts take as their first argument a path to a compiled schema in canonicalized n-quads format. You can generate one of these from a TOML schema with the `lib/compile.js` script.
+Both the import and export scripts take as their first argument a path to a compiled schema in canonicalized n-quads format. You can generate one of these from a TOML schema with the `compile.js` script.
 
 ```bash
-% node lib/compile.js -i path-to-schema.toml -o output-path.nq
+% node compile.js -i path-to-schema.toml -o output-path.nq
 ```
 
 ## Import
 
-Use the `lib/import.js` script to import an assertion, or to initialize and empty database given a schema.
+Use the `import.js` script to import an assertion, or to initialize and empty database given a schema.
 
 ```bash
-% node lib/import.js -s path-to-schema.nq -i path-to-assertion.nq -o output-path.sqlite
+% node import.js -s path-to-schema.nq -i path-to-assertion.nq -o output-path.sqlite
 ```
 
 You can omit the `-i` flag to just initialize an empty database with the appropriate tables and foreign key constraints.
 
 ```bash
-% node lib/import.js -s path-to-schema.nq -o output-path.sqlite
+% node import.js -s path-to-schema.nq -o output-path.sqlite
 ```
 
 ## Export
 
-Use the `lib/export.js` script to export a database to a serialized assertion.
+Use the `export.js` script to export a database to a serialized assertion.
 
 ```bash
-% node lib/export.js -s path-to-schema.nq -i path-to-database.sqlite -o output-path.nq
+% node export.js -s path-to-schema.nq -i path-to-database.sqlite -o output-path.nq
 ```
 
-IF (and only if) the database was created using `lib/import.js` using the _exact_ same schema AND the database schema was not changed AND every insert/update/delete respected the foreign key constraints and all of the column datatypes, then the export will succeed. You should absolutely make sure to turn on foreign key constraint enforcement when updating an initialized database. Unfortunately (for our purposes) SQLite does not enforce datatype constraints (it only does some light coersion based on declared type affinities) so you have to make sure you're putting the right kinds of values into the right columns. If you mess this up, export will throw an error.
+IF (and only if) the database was created using `import.js` using the _exact_ same schema AND the database schema was not changed AND every insert/update/delete respected the foreign key constraints and all of the column datatypes, then the export will succeed. You should absolutely make sure to turn on foreign key constraint enforcement when updating an initialized database. Unfortunately (for our purposes) SQLite does not enforce datatype constraints (it only does some light coersion based on declared type affinities) so you have to make sure you're putting the right kinds of values into the right columns. If you mess this up, export will throw an error.
 
 ## Usage notes
 
@@ -67,7 +67,7 @@ Also notice that the scripts will prompt for confirmation if a file at the given
 There is an example schema `example.toml` and an example assertion `example.json` in the root directory.
 
 ```bash
-% cat example.toml 
+% cat example.toml
 namespace = "http://example.com/"
 
 [shapes.Person]
@@ -85,7 +85,7 @@ kind = "reference"
 label = "Person"
 cardinality = "any"
 
-% cat example.json 
+% cat example.json
 {
 	"@graph": [
 		{
@@ -124,7 +124,7 @@ cardinality = "any"
 The first thing you'd want to do is compile the schema:
 
 ```bash
-% node lib/compile.js -i example.toml -o example.schema.nq
+% node compile.js -i example.toml -o example.schema.nq
 ```
 
 You should have a compiled schema that looks something like this:
@@ -146,7 +146,7 @@ _:c14n12 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://underlay.org/
 If we wanted to initialize an empty database based on this schema, we'd run this command:
 
 ```bash
-% node lib/import.js -s example.schema.nq -o database.sqlite
+% node import.js -s example.schema.nq -o database.sqlite
 ```
 
 If you open this in your favorite database IDE you should see three tables with this schema:
@@ -173,7 +173,7 @@ Or, backing up a bit, if we wanted to instantiate the example assertion, we'd fi
 and then run
 
 ```bash
-% node lib/import.js -s example.schema.nq -i example.nq -o database.sqlite
+% node import.js -s example.schema.nq -i example.nq -o database.sqlite
 The file database.sqlite already exists!
 Press Enter to delete it and continue; or Ctrl-C to abort:
 %

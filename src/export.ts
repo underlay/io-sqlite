@@ -1,140 +1,140 @@
-import fs from "fs"
-import path from "path"
-import readline from "readline"
+import { Buffer } from "buffer"
 
 import sqlite3 from "sqlite3"
-import { open } from "sqlite"
-
-import canonize, { Quad } from "rdf-canonize"
 
 import { BlankNode, Literal, NamedNode, xsd } from "n3.ts"
-import { parseSchemaString, APG, serialize } from "apg"
 
-import { isRelationalSchema, validateURI, some, none } from "./validate.js"
+import { APG, ns } from "apg"
+import { isRelationalSchema } from "apg/lib/models/relational.js"
 
-function invalidParameters() {
-	throw new Error(
-		"Usage: node lib/export.js -s path-to-schema.nq -i input-path.sqlite -o output-path.nq"
-	)
-}
+import { validateURI } from "./validateURI.js"
 
-let schemaPath: string = "",
-	inputPath: string = "",
-	outputPath: string = ""
-
-if (process.argv.length === 8) {
-	if (
-		process.argv[2] === "-s" &&
-		process.argv[4] === "-i" &&
-		process.argv[6] === "-o"
-	) {
-		schemaPath = process.argv[3]
-		inputPath = process.argv[5]
-		outputPath = process.argv[7]
-	} else {
-		invalidParameters()
+export async function exportInstance(
+	db: sqlite3.Database,
+	schema: APG.Schema
+): Promise<APG.Instance> {
+	if (!isRelationalSchema(schema)) {
+		throw new Error("Schema does not satisfy the relational schema constraints")
 	}
-} else {
-	invalidParameters()
-}
 
-const filename = path.resolve(outputPath)
-if (fs.existsSync(filename)) {
-	const rl = readline.createInterface({
-		input: process.stdin,
-		output: process.stdout,
-	})
-	await new Promise((resolve) => {
-		console.log(`The file ${outputPath} already exists!`)
-		rl.question(
-			"Press Enter to delete it and continue; or Ctrl-C to abort:",
-			resolve
-		)
-	})
-	rl.close()
-	fs.unlinkSync(filename)
-}
+	let id = 0
+	const instance: APG.Instance = new Array(schema.length)
+		.fill(null)
+		.map(() => [])
 
-const schemaSchemaPath = path.resolve(
-	"node_modules",
-	"apg",
-	"schema.schema.json"
-)
+	const optionKeys = [ns.none, ns.some]
+	Object.freeze(optionKeys)
 
-const schemaResult = APG.codec.decode(
-	JSON.parse(fs.readFileSync(schemaSchemaPath, "utf-8"))
-)
-
-if (schemaResult._tag === "Left") {
-	console.error(schemaResult.left)
-	throw new Error("schema.schema.json did not parse")
-}
-
-const schemaSchema = APG.codec.encode(schemaResult.right)
-
-const schemaFile = fs.readFileSync(schemaPath, "utf-8")
-
-const result = parseSchemaString(schemaFile, schemaSchema)
-if (result._tag === "Left") {
-	console.error(result.left)
-	throw new Error("schema did not parse")
-}
-
-const schema = result.right
-
-const db = await open({
-	filename: path.resolve(inputPath),
-	driver: sqlite3.Database,
-	mode: sqlite3.OPEN_READONLY,
-})
-
-if (!isRelationalSchema(schema)) {
-	throw new Error("Schema does not satisfy the relational schema constraints")
-}
-
-let id = 0
-const instance: APG.Instance = new Array(schema.length).fill(null).map(() => [])
-
-const optionKeys = [none, some]
-Object.freeze(optionKeys)
-
-const datatypes: Map<string, NamedNode> = new Map()
-const componentKeys: Map<APG.Product, string[]> = new Map()
-const ids: Map<number, number>[] = []
-for (const label of schema) {
-	validateURI(label.key)
-	const map: Map<number, number> = new Map()
-	let i = 0
-	await db.each(
-		`SELECT id FROM "${label.key}"`,
-		(err: null | Error, { id }: { id: number }) => map.set(id, i++)
-	)
-	ids.push(map)
-	if (label.value.type === "product") {
-		const keys = label.value.components.map(({ key }) => key)
-		Object.freeze(keys)
-		componentKeys.set(label.value, keys)
-		for (const component of label.value.components) {
-			const value =
-				component.value.type === "coproduct"
-					? component.value.options[1].value
-					: component.value
-
-			if (value.type === "literal") {
-				if (datatypes.has(value.datatype)) {
-					continue
+	const datatypes: Map<string, NamedNode> = new Map()
+	const componentKeys: Map<APG.Product, string[]> = new Map()
+	const ids: Map<number, number>[] = []
+	for (const label of schema) {
+		validateURI(label.key)
+		const map: Map<number, number> = new Map()
+		let i = 0
+		await db.each(
+			`SELECT id FROM "${label.key}"`,
+			(err: null | Error, { id }: { id: number }) => {
+				if (err !== null) {
+					throw err
 				} else {
-					datatypes.set(value.datatype, new NamedNode(value.datatype))
+					map.set(id, i++)
+				}
+			}
+		)
+		ids.push(map)
+		if (label.value.type === "product") {
+			const keys = label.value.components.map(({ key }) => key)
+			Object.freeze(keys)
+			componentKeys.set(label.value, keys)
+			for (const component of label.value.components) {
+				const value =
+					component.value.type === "coproduct"
+						? component.value.options[1].value
+						: component.value
+
+				if (value.type === "literal") {
+					if (datatypes.has(value.datatype)) {
+						continue
+					} else {
+						datatypes.set(value.datatype, new NamedNode(value.datatype))
+					}
 				}
 			}
 		}
 	}
+
+	for (const [i, label] of schema.entries()) {
+		validateURI(label.key)
+		const total = await db.each(
+			`SELECT * FROM "${label.key}"`,
+			(
+				err: null | Error,
+				row: { id: number; [key: string]: string | number | boolean | null }
+			) => {
+				if (err !== null) {
+					throw err
+				} else if (label.value.type === "product") {
+					const values: APG.Value[] = []
+					const keys = componentKeys.get(label.value)
+					if (keys === undefined) {
+						throw new Error("Could not get component keys for product type")
+					}
+					for (const component of label.value.components) {
+						const value = row[component.key]
+						if (value === undefined) {
+							throw new Error(
+								`Missing value for row ${row.id} property ${component.key}`
+							)
+						} else if (component.value.type === "coproduct") {
+							const node = new BlankNode(`b${id++}`)
+							if (value === null) {
+								values.push(
+									new APG.Variant(
+										node,
+										optionKeys,
+										0,
+										new BlankNode(`b${id++}`)
+									)
+								)
+							} else {
+								const [{}, { value: type }] = component.value.options
+								values.push(
+									new APG.Variant(
+										node,
+										optionKeys,
+										1,
+										parseValue(value, type, ids, datatypes)
+									)
+								)
+							}
+						} else if (value === null) {
+							throw new Error("Unexpected null value")
+						} else {
+							values.push(parseValue(value, component.value, ids, datatypes))
+						}
+					}
+					const record = new APG.Record(new BlankNode(`b${id++}`), keys, values)
+					instance[i].push(record)
+				} else if (label.value.type === "unit") {
+					instance[i].push(new BlankNode(`b${id++}`))
+				} else {
+					throw new Error("Invalid type")
+				}
+			}
+		)
+
+		Object.freeze(instance[i])
+	}
+
+	return instance
 }
 
 function parseValue(
-	value: string | number | boolean,
-	type: APG.Literal | APG.Iri | APG.Reference
-	// map: Map<number, number>
+	value: string | number | boolean | Buffer,
+	type: APG.Literal | APG.Iri | APG.Reference,
+	ids: Map<number, number>[],
+	datatypes: Map<string, NamedNode>
 ): APG.Value {
 	if (type.type === "reference") {
 		const map = ids[type.value]
@@ -188,6 +188,18 @@ function parseValue(
 			} else {
 				throw new Error("Unexpected value for double datatype")
 			}
+		} else if (type.datatype === xsd.hexBinary) {
+			if (Buffer.isBuffer(value)) {
+				return new Literal(value.toString("hex"), "", datatype)
+			} else {
+				throw new Error("Unexpected value for binary datatype")
+			}
+		} else if (type.datatype === xsd.base64Binary) {
+			if (Buffer.isBuffer(value)) {
+				return new Literal(value.toString("base64"), "", datatype)
+			} else {
+				throw new Error("Unexpected value for binary datatype")
+			}
 		} else if (type.datatype === xsd.string) {
 			if (typeof value === "string") {
 				return new Literal(value, "", datatype)
@@ -205,62 +217,3 @@ function parseValue(
 		throw new Error("Invalid type")
 	}
 }
-
-for (const [i, label] of schema.entries()) {
-	validateURI(label.key)
-	const total = await db.each(
-		`SELECT * FROM "${label.key}"`,
-		(
-			err: null | Error,
-			row: { id: number; [key: string]: string | number | boolean | null }
-		) => {
-			if (err !== null) {
-				throw err
-			} else if (label.value.type === "product") {
-				const values: APG.Value[] = []
-				const keys = componentKeys.get(label.value)
-				if (keys === undefined) {
-					throw new Error("Could not get component keys for product type")
-				}
-				for (const component of label.value.components) {
-					const value = row[component.key]
-					if (value === undefined) {
-						throw new Error(
-							`Missing value for row ${row.id} property ${component.key}`
-						)
-					} else if (component.value.type === "coproduct") {
-						const node = new BlankNode(`b${id++}`)
-						if (value === null) {
-							values.push(
-								new APG.Variant(node, optionKeys, 0, new BlankNode(`b${id++}`))
-							)
-						} else {
-							const [{}, { value: type }] = component.value.options
-							values.push(
-								new APG.Variant(node, optionKeys, 1, parseValue(value, type))
-							)
-						}
-					} else if (value === null) {
-						throw new Error("Unexpected null value")
-					} else {
-						values.push(parseValue(value, component.value))
-					}
-				}
-				const record = new APG.Record(new BlankNode(`b${id++}`), keys, values)
-				instance[i].push(record)
-			} else if (label.value.type === "unit") {
-				instance[i].push(new BlankNode(`b${id++}`))
-			} else {
-				throw new Error("Invalid type")
-			}
-		}
-	)
-}
-
-const quads: Quad[] = []
-for (const quad of serialize(instance, schema)) {
-	quads.push(quad.toJSON())
-}
-
-const dataset = canonize.canonizeSync(quads, { algorithm: "URDNA2015" })
-fs.writeFileSync(filename, dataset)

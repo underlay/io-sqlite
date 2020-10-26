@@ -1,6 +1,7 @@
 namespace = "http://example.com/"
 
 [shapes.Person]
+
 [shapes.Person.orcidId]
 kind = "uri"
 cardinality = "optional"

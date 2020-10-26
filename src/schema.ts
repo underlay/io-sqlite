@@ -1,62 +1,12 @@
-import fs from "fs"
-import path from "path"
-import readline from "readline"
-import toml from "toml"
-
 import t from "io-ts"
 
-import { APG } from "apg"
 import { xsd } from "n3.ts"
 
+import { APG, ns } from "apg"
 import {
-	none,
-	some,
-	source,
-	target,
-	RelationalCodec,
 	isRelationalSchema,
-} from "./validate.js"
-import jsonld from "jsonld"
-
-function invalidParameters() {
-	throw new Error(
-		"Usage: node lib/compiled.js -i path-to-schema.toml -o output-path.nq"
-	)
-}
-
-let inputPath: string = "",
-	outputPath: string = ""
-
-if (process.argv.length === 6) {
-	if (process.argv[2] === "-i" && process.argv[4] === "-o") {
-		inputPath = process.argv[3]
-		outputPath = process.argv[5]
-	} else {
-		invalidParameters()
-	}
-} else {
-	invalidParameters()
-}
-
-const filename = path.resolve(outputPath)
-if (fs.existsSync(filename)) {
-	const rl = readline.createInterface({
-		input: process.stdin,
-		output: process.stdout,
-	})
-	await new Promise((resolve) => {
-		console.log(`The file ${outputPath} already exists!`)
-		rl.question(
-			"Press Enter to delete it and continue; or Ctrl-C to abort:",
-			resolve
-		)
-	})
-	rl.close()
-	fs.unlinkSync(filename)
-}
-
-const input = fs.readFileSync(path.resolve(inputPath), "utf-8")
-const schema = toml.parse(input)
+	relationalSchema,
+} from "apg/lib/models/relational.js"
 
 const datatype = t.union([
 	t.literal("string"),
@@ -65,6 +15,8 @@ const datatype = t.union([
 	t.literal("boolean"),
 	t.literal("date"),
 	t.literal("dateTime"),
+	t.literal("hexBinary"),
+	t.literal("base64Binary"),
 ])
 
 const type = t.union([
@@ -102,9 +54,9 @@ const codec = t.type({
 const namespacePattern = /^[a-z0-9]+:(?:\/[A-Za-z0-9-._:]*)+\/$/
 const propertyPattern = /^[a-z0-9]+:(?:\/[A-Za-z0-9-._:]*)*[A-Za-z0-9-._:]+(?:\/|#)[A-Za-z0-9-._]+$/
 
-const TomlSchema = new t.Type<
+export const TomlSchema = new t.Type<
 	t.TypeOf<typeof codec>,
-	t.TypeOf<typeof RelationalCodec>
+	t.TypeOf<typeof relationalSchema>
 >(
 	"TomlSchema",
 	codec.is,
@@ -144,7 +96,7 @@ const TomlSchema = new t.Type<
 		}
 		return result
 	},
-	(input): t.TypeOf<typeof RelationalCodec> => {
+	(input): t.TypeOf<typeof relationalSchema> => {
 		const labelKeys: string[] = []
 		for (const label of Object.keys(input.shapes)) {
 			const key = label.includes(":") ? label : input.namespace + label
@@ -203,8 +155,8 @@ const TomlSchema = new t.Type<
 						} else if (property.cardinality === "optional") {
 							const unit: APG.Unit = Object.freeze({ type: "unit" })
 							const options: APG.Option[] = [
-								Object.freeze({ type: "option", key: none, value: unit }),
-								Object.freeze({ type: "option", key: some, value }),
+								Object.freeze({ type: "option", key: ns.none, value: unit }),
+								Object.freeze({ type: "option", key: ns.some, value }),
 							]
 							Object.freeze(options)
 							const coproduct: APG.Coproduct = { type: "coproduct", options }
@@ -232,12 +184,12 @@ const TomlSchema = new t.Type<
 							const propertyComponents: APG.Component[] = [
 								Object.freeze({
 									type: "component",
-									key: source,
+									key: ns.source,
 									value: reference,
 								}),
 								Object.freeze({
 									type: "component",
-									key: target,
+									key: ns.target,
 									value: value,
 								}),
 							]
@@ -309,24 +261,3 @@ function parseValue(
 		throw new Error("Invalid type")
 	}
 }
-
-const result = TomlSchema.decode(schema)
-if (result._tag === "Left") {
-	for (const error of result.left) {
-		console.error(error)
-	}
-	throw new Error("Invalid TOML schema")
-}
-
-const document = APG.toJSON(TomlSchema.encode(result.right))
-const context = JSON.parse(
-	fs.readFileSync(path.resolve("node_modules/apg/context.jsonld"), "utf-8")
-)
-
-const output = await jsonld.normalize(document, {
-	expandContext: context,
-	algorithm: "URDNA2015",
-	format: "application/n-quads",
-})
-
-fs.writeFileSync(filename, output)
